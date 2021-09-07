@@ -11,7 +11,7 @@ public class ProducerConsumer {
     public static void main(String[] arg) {
 
         PCObj PC = new PCObj();
-        Semaphore sem_p = new Semaphore(10); 
+        Semaphore sem_p = new Semaphore(15); 
         Semaphore sem_c = new Semaphore(0);
         Thread P = new Thread(new Runnable() {
             @Override
@@ -50,7 +50,7 @@ class PCObj {
     List<String> buffer = new LinkedList<>();
     Semaphore sem_p;
     Semaphore sem_c;
-    boolean flag = false;
+    int count = 0;
     public void Producer(Semaphore sem_p, Semaphore sem_c) throws InterruptedException {
         int head_ptr = 0;
         try {
@@ -60,24 +60,28 @@ class PCObj {
                 sem_p.acquire();
                     synchronized (this) {
                         String data = myReader.nextLine();
-                        System.out.println("Producer: " + data + " head_ptr: " + head_ptr);
+                        System.out.println("Producer: "  + data + " head_ptr: " + head_ptr);
                         buffer.add(data);
-                        head_ptr++;
+                        head_ptr++;          
                         // Thread.sleep(100);
-                    }
-                sem_c.release();
+                        if(!myReader.hasNextLine()){
+                            count = head_ptr;
+                            System.out.println("---Producer end---");
+                        }
+                    }      
+                sem_c.release();               
             }
-            flag = true;
             myReader.close();
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
-        }
+        }        
     }
 
     public void Consumer(Semaphore sem_p, Semaphore sem_c) throws InterruptedException {
         int tail_ptr = 0;
-        while (true && !flag) {
+        while (true) {
+            if(tail_ptr == count && count != 0) break;
             sem_c.acquire();
                 synchronized (this) {
                     String val = buffer.get(tail_ptr);
@@ -87,5 +91,6 @@ class PCObj {
                 }
             sem_p.release();         
         }
+        System.out.println("---Consumer end---");
     }
 }
